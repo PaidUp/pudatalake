@@ -6,6 +6,6 @@ module.exports = function (app) {
 
   app.route("/*")
     .get(function (err, res) {
-      res.status(200).json({"PU": "Product!!!"});
+      res.status(404).end();
     });
 };
