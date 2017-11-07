@@ -55,6 +55,7 @@ let all = {
     }
   },
   encryptKey: "PZ3oXv2v6Pq5HAPFI9NFbQ==",
+  bugsnag: "7389712c2988e8661205b7fb78ca99ee"
 };
 
 // Export the config object based on the NODE_ENV

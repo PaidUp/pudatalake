@@ -20,6 +20,8 @@ const express = require("express");
 const config = require("./config/environment");
 const DbService = require("./services/db.service");
 const logger = require("./services/log.service");
+var bugsnag = require("bugsnag");
+bugsnag.register(config.bugsnag);
 
 DbService.connect((err, db) => {
   if(err){
@@ -41,6 +43,7 @@ if (config.env != "test") {
       logger.info(`Express server listening on ${config.port}, in ${app.get("env")} mode`);
     });
   } catch (err) {
+    bugsnag.notify(err);
     logger.error(err);
   }
 }

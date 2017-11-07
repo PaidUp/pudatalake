@@ -3,6 +3,7 @@
 const service = require("./datalake.service");
 const pmx = require("pmx");
 const probe = pmx.probe();
+const logger = require("../../services/log.service");
 
 var counterSaveStripeRequest = probe.counter({
   name : "saveStripeRequest"
@@ -28,9 +29,13 @@ function saveStripeRequest (req, res){
 }
 
 function handlerError (err, res){
-  console.log(err);
   pmx.notify(err);
   counterSaveStripeRequestFail.inc();
+  if(err.type && err.type === "StripeSignatureVerificationError"){
+    logger.warn(err);
+    return res.status(401).end();
+  }
+  logger.error(err);  
   return res.status(500).json({ received: false });
 }
 
