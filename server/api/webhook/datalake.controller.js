@@ -33,7 +33,7 @@ function handlerError (err, res){
   counterSaveStripeRequestFail.inc();
   if(err.type && err.type === "StripeSignatureVerificationError"){
     logger.warn(err);
-    return res.status(401).end();
+    return res.status(500).end();
   }
   logger.error(err);  
   return res.status(500).json({ received: false });
