@@ -1,20 +1,19 @@
 "use strict";
 
 var bugsnag = require("bugsnag");
-const config = require("../config/environment");
+//const config = require("../config/environment");
 const winston = require("winston");
-require("winston-loggly-bulk");
-var logger = new (winston.Logger)({
-  
-});
+//require("winston-loggly-bulk");
+var logger = new (winston.Logger)({});
 
 if (process.env.NODE_ENV === "test") {
   logger.add(winston.transports.File, { filename: "logs/test.log" });
 } else if (process.env.NODE_ENV === "development") {
   logger.add(winston.transports.Console);
-  logger.add(winston.transports.Loggly, config.logger.loggly);  
+  //logger.add(winston.transports.Loggly, config.logger.loggly);  
 } else {
-  logger.add(winston.transports.Loggly, config.logger.loggly);
+  logger.add(winston.transports.Console);  
+  //logger.add(winston.transports.Loggly, config.logger.loggly);
 }
 
 function info (message) {
