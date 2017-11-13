@@ -5,12 +5,15 @@ const dbService = require("../../services/db.service");
 const moment = require("moment");
 
 
-function saveStripe(signature, body, cb) {
-  let event = stripeService.getEvent(signature, body);
+function saveStripe(type, signature, body, cb) {
+  let event = stripeService.getEvent(type, signature, body);
   let collectionName = (event && event.data && event.data.object && event.data.object.object) ? event.data.object.object : "undefined";
   dbService.connect((err, db) => {
     let collection = db.collection("stripe_"+collectionName);
     event.data.object["updated"] = moment().format("x");
+    if(type){
+      event.data.object["account"] = event.account;
+    }
     collection.findOneAndReplace({
       id: event.data.object.id
     }, 

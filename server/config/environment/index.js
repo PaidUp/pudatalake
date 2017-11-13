@@ -22,7 +22,10 @@ let all = {
   stripe: {
     key: "sk_test_9AioI4XzoZbMuInmqEAZukPr",
     webhook:{
-      datalake: "whsec_Y3ghPzdEZCiWldbpVhPtRsT3ouxPCWnt"
+      datalake: {
+        account: "whsec_Y3ghPzdEZCiWldbpVhPtRsT3ouxPCWnt",
+        connect: "whsec_vmQ3i1kSr91QRl9jey8V0CLKqLafKJnB"
+      }
     }
   },
   nodePass: {

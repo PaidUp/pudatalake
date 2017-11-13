@@ -10,8 +10,9 @@ function instance (){
   return instance.stripe;
 }
 
-function getEvent(sig, body){
-  return instance().webhooks.constructEvent(body, sig, endpointSecret);
+function getEvent(type, sig, body){
+  let secret = endpointSecret[type] || endpointSecret.account;
+  return instance().webhooks.constructEvent(body, sig, secret);
 }
 
 module.exports = {

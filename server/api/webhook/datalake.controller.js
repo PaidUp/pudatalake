@@ -16,12 +16,13 @@ var counterSaveStripeRequestFail = probe.counter({
 function saveStripeRequest (req, res){
   try {
     let sig = req.headers["stripe-signature"];
-    service.saveStripe(sig, req.body, (err, data) => {
+    service.saveStripe(req.params.type, sig, req.body, (err, data) => {
       if(err){
         return handlerError(err, res);
       }
       counterSaveStripeRequest.inc();
       res.status(200).end();
+      logger.info("respose ok");
     });
   } catch (error) {
     handlerError(error, res);
