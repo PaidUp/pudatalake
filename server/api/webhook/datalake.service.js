@@ -3,6 +3,7 @@
 const stripeService = require("../../services/stripe.service");
 const dbService = require("../../services/db.service");
 const moment = require("moment");
+const config = require("../../config/environment");
 
 
 function saveStripe(type, signature, body, cb) {
@@ -12,10 +13,12 @@ function saveStripe(type, signature, body, cb) {
     let collection = db.collection("stripe_"+collectionName);
     event.data.object["updated"] = moment().format("x");
     if(type){
-      event.data.object["account"] = event.account;
+      event.data.object["connect"] = event.account;
+    } else {
+      event.data.object["connect"] = config.stripe.account;
     }
     collection.findOneAndReplace({
-      id: event.data.object.id
+      id: event.data.object.id, connect: event.data.object.connect
     }, 
     event.data.object, {
       upsert: true

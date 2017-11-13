@@ -20,6 +20,7 @@ let all = {
     session: "puproduct-secret"
   },
   stripe: {
+    account: "paidup",
     key: "sk_test_9AioI4XzoZbMuInmqEAZukPr",
     webhook:{
       datalake: {
