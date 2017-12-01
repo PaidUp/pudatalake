@@ -11,8 +11,9 @@ var scheduler = null;
 var isRunning = false;
 
 function importZendeskTickets() {
-
-  scheduler = schedule.scheduleJob("* */1 * * *", function () {
+  var rule = new schedule.RecurrenceRule();
+  rule.minute = 60;
+  scheduler = schedule.scheduleJob(rule, function () {
     if (!isRunning) {
       isRunning = true;
       dbService.connect((err, db) => {
