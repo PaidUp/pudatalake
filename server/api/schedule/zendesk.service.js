@@ -12,7 +12,7 @@ var isRunning = false;
 
 function importZendeskTickets() {
 
-  scheduler = schedule.scheduleJob("*/1 * * * *", function () {
+  scheduler = schedule.scheduleJob("* */1 * * *", function () {
     if (!isRunning) {
       isRunning = true;
       dbService.connect((err, db) => {
