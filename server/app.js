@@ -16,11 +16,14 @@ const pmx = require("pmx").init({
   alert_enabled: true
 });
 
-const express = require("express");
-const config = require("./config/environment");
-const DbService = require("./services/db.service");
-const logger = require("./services/log.service");
-var bugsnag = require("bugsnag");
+const express = require("express"),
+config = require("./config/environment"),
+DbService = require("./services/db.service"),
+logger = require("./services/log.service"),
+bugsnag = require("bugsnag"),
+zendeskService = require("./api/schedule/zendesk.service");
+
+
 bugsnag.register(config.bugsnag);
 
 DbService.connect((err, db) => {
@@ -41,6 +44,7 @@ if (config.env != "test") {
   try {
     server.listen(config.port, config.ip, function () {
       logger.info(`Express server listening on ${config.port}, in ${app.get("env")} mode`);
+      zendeskService.importZendeskTickets();
     });
   } catch (err) {
     bugsnag.notify(err);

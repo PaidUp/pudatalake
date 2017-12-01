@@ -22,7 +22,7 @@ let all = {
   stripe: {
     account: "paidup",
     key: "sk_test_9AioI4XzoZbMuInmqEAZukPr",
-    webhook:{
+    webhook: {
       datalake: {
         account: "whsec_Y3ghPzdEZCiWldbpVhPtRsT3ouxPCWnt",
         connect: "whsec_vmQ3i1kSr91QRl9jey8V0CLKqLafKJnB"
@@ -55,11 +55,16 @@ let all = {
       token: "0b55b141-1a00-40d5-951e-ae8e616b0b94",
       subdomain: "devgetpaidup",
       tags: ["paidup", "datalake"],
-      json:true
+      json: true
     }
   },
   encryptKey: "PZ3oXv2v6Pq5HAPFI9NFbQ==",
-  bugsnag: "7389712c2988e8661205b7fb78ca99ee"
+  bugsnag: "7389712c2988e8661205b7fb78ca99ee",
+  zendesk: {
+    url: "https://getpaidup1478060212.zendesk.com",
+    username: "ricardo@getpaidup.com",
+    password: "acDb/aFSXiwkr~Zj4IxdFzja"
+  }
 };
 
 // Export the config object based on the NODE_ENV
