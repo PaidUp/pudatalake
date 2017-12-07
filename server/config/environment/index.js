@@ -63,7 +63,21 @@ let all = {
   zendesk: {
     url: "https://getpaidup1478060212.zendesk.com",
     username: "ricardo@getpaidup.com",
-    password: "acDb/aFSXiwkr~Zj4IxdFzja"
+    password: "acDb/aFSXiwkr~Zj4IxdFzja",
+    export: {
+      tickets: {
+        minute: 0,
+        count: 1000
+      },
+      ticket_events: {
+        minute: 10,
+        count: 1000
+      },
+      ticket_metric_events: {
+        minute: 30,
+        count: 10000
+      }
+    }
   }
 };
 
