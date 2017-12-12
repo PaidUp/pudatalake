@@ -7,20 +7,28 @@ const logger = require("../../services/log.service");
 
 
 
-function organizationMonthlySummary (req, res){
+function organizationMonthlySummary(req, res) {
   try {
-    console.log("organizationMonthlySummary");
-    service.getSummary();
-    res.status(200).end()
+    let year = req.params.year;
+    let month = req.params.month;
+    
+    service.getSummary(year, month, (err, data) => {
+      if (err) {
+        handlerError(error, res);
+      }
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=summary.csv');
+      res.status(200).send(data)
+    });
   } catch (error) {
     handlerError(error, res);
   }
 }
 
-function handlerError (err, res){
+function handlerError(err, res) {
   pmx.notify(err);
   counterSaveStripeRequestFail.inc();
-  logger.error(err);  
+  logger.error(err);
   return res.status(500).json({ received: false });
 }
 

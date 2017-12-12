@@ -5,6 +5,6 @@ const controller = require("./report.controller");
 const router = express.Router();
 
 
-router.get("/summary", controller.organizationMonthlySummary);
+router.get("/summary/:year/:month", controller.organizationMonthlySummary);
 
 module.exports = router;
