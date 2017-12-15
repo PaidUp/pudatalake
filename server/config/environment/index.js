@@ -36,7 +36,8 @@ let all = {
   },
   // MongoDB connection options
   mongo: {
-    uri: "mongodb://pudevelop:xEbiMFBtX48ObFgC@pu-dev-shard-00-00-4nodg.mongodb.net:27017,pu-dev-shard-00-01-4nodg.mongodb.net:27017,pu-dev-shard-00-02-4nodg.mongodb.net:27017/develop?ssl=true&replicaSet=pu-dev-shard-0&authSource=admin",
+    atlas: "mongodb://pudevelop:xEbiMFBtX48ObFgC@pu-dev-shard-00-00-4nodg.mongodb.net:27017,pu-dev-shard-00-01-4nodg.mongodb.net:27017,pu-dev-shard-00-02-4nodg.mongodb.net:27017/develop?ssl=true&replicaSet=pu-dev-shard-0&authSource=admin",
+    local: "mongodb://localhost/convenience-dev",
     options: {
       db: {
         safe: true
@@ -66,15 +67,15 @@ let all = {
     password: "acDb/aFSXiwkr~Zj4IxdFzja",
     export: {
       tickets: {
-        minute: 0,
+        minute: 100,
         count: 1000
       },
       ticket_events: {
-        minute: 10,
+        minute: 110,
         count: 1000
       },
       ticket_metric_events: {
-        minute: 30,
+        minute: 130,
         count: 10000
       }
     }

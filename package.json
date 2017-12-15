@@ -37,6 +37,7 @@
     "lodash": "^4.17.4",
     "method-override": "^2.3.5",
     "moment": "^2.19.1",
+    "moment-business-days": "^1.0.6",
     "mongodb": "^2.2.33",
     "node-schedule": "^1.2.5",
     "pmx": "^0.6.8",
