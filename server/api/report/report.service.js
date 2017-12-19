@@ -70,11 +70,11 @@ function getSummary(year, month, cb) {
           }
         }
 
-         for (let key in cashflow) {
-           if (key === org.stripeId) {
-             row.cashflow = cashflow[key].toFixed(2);
-           }
-         }
+        for (let key in cashflow) {
+          if (key === org.stripeId) {
+            row.cashflow = cashflow[key].toFixed(2);
+          }
+        }
 
         rows.push(row);
       }
@@ -312,40 +312,38 @@ function getCashFlow(year, month) {
     let dbc = null;
     try {
       let since = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months');
-      businessDays.instance().then(momentBD => {
-        dbService.getLocalConnection().then(db => {
-          dbc = db;
-          db.collection('orders').aggregate([
-            {
-              $unwind: "$paymentsPlan"
-            },
-            {
-              $match: {
-                "paymentsPlan.status": "pending",
-                "paymentsPlan.dateCharge": {
-                  $gte: since.toDate()
-                },
-              }
+      dbService.getLocalConnection().then(db => {
+        dbc = db;
+        db.collection('orders').aggregate([
+          {
+            $unwind: "$paymentsPlan"
+          },
+          {
+            $match: {
+              "paymentsPlan.status": "pending",
+              "paymentsPlan.dateCharge": {
+                $gte: since.toDate()
+              },
             }
-          ]).toArray((err, docs) => {
-            if (err) {
-              return handlerError(err, reject, dbc);
+          }
+        ]).toArray((err, docs) => {
+          if (err) {
+            return handlerError(err, reject, dbc);
+          }
+          let map = docs.map(order => {
+            return {
+              _id: order.paymentsPlan.destinationId,
+              amount: order.paymentsPlan.price - order.paymentsPlan.totalFee
             }
-            let map = docs.map(order => {
-              return {
-                _id: order.paymentsPlan.destinationId,
-                amount: order.paymentsPlan.price - order.paymentsPlan.totalFee
-              }
-            }).reduce((prev, curr) => {
-              prev[curr._id] = curr.amount + (prev[curr._id] || 0);
-              return prev;
-            }, {});
-            dbService.close(db);
-            resolve(map);
-          });
-        }).catch(reason => {
-          handlerError(reason, reject, dbc);
+          }).reduce((prev, curr) => {
+            prev[curr._id] = curr.amount + (prev[curr._id] || 0);
+            return prev;
+          }, {});
+          dbService.close(db);
+          resolve(map);
         });
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
       });
     } catch (error) {
       handlerError(error, reject, dbc);
