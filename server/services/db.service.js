@@ -36,6 +36,13 @@ function getConnection (url) {
   });
 }
 
+exports.close = function(db){
+  if (db && db.serverConfig && db.serverConfig.isConnected()) {
+    logger.info("close connection server");
+    db.close();
+  }
+}
+
 exports.getLocalConnection = function (){
   let url = mongoConf.local
   return getConnection(url);

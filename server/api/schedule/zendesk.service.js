@@ -33,7 +33,7 @@ function importZendesk(item, include) {
         collection.find().sort(filter).limit(1).toArray((err, result) => {
           let start = 1420070400;
           if (result.length) {
-            start = startTime[item].get(result[0]);
+            start = startTime[item].get(result[0]) - 5184000;
           }
           let includeQuery = include ? `include=${include}&` : "";
           let url = `${config.zendesk.url}/api/v2/incremental/${item}.json?${includeQuery}start_time=${start}`

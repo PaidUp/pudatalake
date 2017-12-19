@@ -26,7 +26,7 @@ function instance () {
                         holidays: holidays,
                         holidayFormat: doc.holidayFormat
                      });
-                     db.close();
+                     dbService.close(db);
                      instance.moment = moment;
                      resolve(instance.moment);
                 });

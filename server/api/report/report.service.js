@@ -13,7 +13,7 @@ function getSummary(year, month, cb) {
   //[touches, outstanding, aged, failed]
   let fields = ["id", "organization", "touches", "outstanding", "aged", "failed", "deposits", "cashflow"];
   Promise.all([
-    getTouces(year, month),
+    getTouches(year, month),
     reduceAmounts(["ticket_category_adjust_payment_amount_and_or_date", "ticket_category_sign_up_assistance", "ticket_category_setup_unique_payment_plan"], ["open", "pending"]),
     reduceAmounts(["ticket_category_no_response_unable_to_collect_payment"], ["solved", "closed"]),
     reduceAmounts(["ticket_category_payment_failed_new_card"], ["open", "pending"]),
@@ -70,11 +70,11 @@ function getSummary(year, month, cb) {
           }
         }
 
-        for (let key in cashflow) {
-          if (key === org.stripeId) {
-            row.cashflow = cashflow[key].toFixed(2);
-          }
-        }
+         for (let key in cashflow) {
+           if (key === org.stripeId) {
+             row.cashflow = cashflow[key].toFixed(2);
+           }
+         }
 
         rows.push(row);
       }
@@ -82,20 +82,21 @@ function getSummary(year, month, cb) {
       cb(null, result);
 
     }).catch(reason => {
-      log.error(reason);
-      cb(reason);
+      handlerError(reason, cb);
     })
   });
 }
 
-function getTouces(year, month) {
+function getTouches(year, month) {
   return new Promise((resolve, reject) => {
+    let dbc = null;
     try {
       let startDate = new Date(`${year}-${month}-01T00:00:00.0Z`);
       let endDate = new Date(`${year}-${month}-01T00:00:00.0Z`);
       endDate.setMonth(startDate.getMonth() + 1);
       endDate.setDate(0);
-      dbService.connect((err, db) => {
+      dbService.getAtlasConnection().then(db => {
+        dbc = db;
         db.collection("zendesk_tickets").aggregate([
           {
             $match: {
@@ -121,8 +122,9 @@ function getTouces(year, month) {
                 $gte: startDate,
                 $lte: endDate
               },
-              "events.updater_id": { $ne: -1 },
-              "organization_id": { $ne: null }
+              "events.child_events": {
+                $elemMatch: { type: "Comment" }
+              }
             }
           },
           {
@@ -134,15 +136,17 @@ function getTouces(year, month) {
 
         ]).toArray((err, docs) => {
           if (err) {
-            return reject(err)
+            return handlerError(err, reject, dbc);
           }
+          dbService.close(db);
           resolve(docs)
         });
 
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
       });
     } catch (error) {
-      log.error(error)
-      reject(error)
+      handlerError(error, reject, dbc);
     }
   })
 
@@ -150,8 +154,10 @@ function getTouces(year, month) {
 
 function reduceAmounts(fields, status) {
   return new Promise((resolve, reject) => {
+    let dbc = null;
     try {
-      dbService.connect((err, db) => {
+      dbService.getAtlasConnection().then(db => {
+        dbc = db;
         db.collection("zendesk_tickets").aggregate([
           {
             $match: {
@@ -202,7 +208,7 @@ function reduceAmounts(fields, status) {
           },
         ]).toArray((err, docs) => {
           if (err) {
-            return reject(err)
+            return handlerError(err, reject, dbc);
           }
           let res = docs.map(elem => {
             var sum = elem.values.reduce((prevVal, val) => {
@@ -213,34 +219,40 @@ function reduceAmounts(fields, status) {
               amount: sum
             }
           })
+          dbService.close(db);
           resolve(res)
         });
-
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
       });
     } catch (error) {
-      log.error(error)
-      reject(error)
+      handlerError(error, reject, dbc);
     }
   })
 }
 
 function getDeposits(year, month) {
   return new Promise((resolve, reject) => {
-    let startDate = moment({ y: year, M: month, d: 1, h: 0 }).unix();
-    let endDate = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months').unix();
-    reduceDeposits(startDate, endDate).then(result => {
-      resolve(result);
-    }).catch(reason => {
-      reject(reason);
-    })
+    try {
+      let startDate = moment({ y: year, M: month, d: 1, h: 0 }).unix();
+      let endDate = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months').unix();
+      reduceDeposits(startDate, endDate).then(result => {
+        resolve(result);
+      }).catch(reason => {
+        handlerError(reason, reject);
+      })
+    } catch (error) {
+      handlerError(error, reject);
+    }
   })
-
 }
 
 function reduceDeposits(startDate, endDate) {
   return new Promise((resolve, reject) => {
+    let dbc = null;
     try {
-      dbService.connect((err, db) => {
+      dbService.getAtlasConnection().then(db => {
+        dbc = db;
         db.collection("stripe_payout").aggregate([
           {
             $match: {
@@ -258,41 +270,51 @@ function reduceDeposits(startDate, endDate) {
           }
         ]).toArray((err, docs) => {
           if (err) {
-            return reject(err)
+            return handlerError(err, reject, dbc);
           }
+          dbService.close(db);
           resolve(docs)
         });
 
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
       });
     } catch (error) {
-      log.error(error)
-      reject(error)
+      handlerError(error, reject, dbc);
     }
   })
 }
 
 function getOrganizations() {
   return new Promise((resolve, reject) => {
-    dbService.connect((err, db) => {
-      db.collection("organizations").find({}).toArray(function (err, docs) {
-        if (err) {
-          return reject(err)
-        }
-        resolve(docs);
+    let dbc = null;
+    try {
+      dbService.getAtlasConnection().then(db => {
+        dbc = db;
+        db.collection("organizations").find({}).toArray(function (err, docs) {
+          if (err) {
+            return handlerError(err, reject, dbc);
+          }
+          dbService.close(db);
+          resolve(docs);
+        });
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
       });
-    });
-
+    } catch (error) {
+      handlerError(error, reject, dbc);
+    }
   })
 }
 
 function getCashFlow(year, month) {
   return new Promise((resolve, reject) => {
+    let dbc = null;
     try {
       let since = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months');
-      let until = moment({ y: year, M: month, d: 1, h: 0 }).add(2, 'months');
-
       businessDays.instance().then(momentBD => {
         dbService.getLocalConnection().then(db => {
+          dbc = db;
           db.collection('orders').aggregate([
             {
               $unwind: "$paymentsPlan"
@@ -301,21 +323,15 @@ function getCashFlow(year, month) {
               $match: {
                 "paymentsPlan.status": "pending",
                 "paymentsPlan.dateCharge": {
-                  $gte: since.toDate(),
-                  $lte: until.toDate()
+                  $gte: since.toDate()
                 },
               }
             }
           ]).toArray((err, docs) => {
             if (err) {
-              log.error(err);
-              bugsnag.notify(err);
-              return reject(err);
+              return handlerError(err, reject, dbc);
             }
-            let map = docs.filter(order => {
-              let payoutDate = momentBD(order.paymentsPlan.dateCharge).businessAdd(2);
-              return (payoutDate.isSameOrBefore(until));
-            }).map(order => {
+            let map = docs.map(order => {
               return {
                 _id: order.paymentsPlan.destinationId,
                 amount: order.paymentsPlan.price - order.paymentsPlan.totalFee
@@ -324,15 +340,46 @@ function getCashFlow(year, month) {
               prev[curr._id] = curr.amount + (prev[curr._id] || 0);
               return prev;
             }, {});
+            dbService.close(db);
             resolve(map);
           });
+        }).catch(reason => {
+          handlerError(reason, reject, dbc);
         });
       });
     } catch (error) {
-      log.error(error);
-      bugsnag.notify(error);
+      handlerError(error, reject, dbc);
     }
   });
+}
+
+function getSummaryRecipients() {
+  return new Promise((resolve, reject) => {
+    let dbc = null;
+    try {
+      dbService.getAtlasConnection().then(db => {
+        dbc = db
+        db.collection("reports").find({ id: "organization-monthly-summary" }, (err, report) => {
+          if (err) {
+            return handlerError(err, reject, dbc);
+          }
+          dbService.close(db);
+          resolve(report)
+        });
+      }).catch(reason => {
+        handlerError(reason, reject, dbc);
+      });
+    } catch (error) {
+      handlerError(error, reject, dbc);
+    }
+  });
+}
+
+function handlerError(reason, reject, db) {
+  log.error(reason);
+  bugsnag.notify(reason);
+  reject(reason);
+  dbService.close(db);
 }
 
 module.exports = {
