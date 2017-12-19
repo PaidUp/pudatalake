@@ -1,3 +1,5 @@
+"use strict"
+
 var moment = require('moment-business-days'),
     bugsnag = require("bugsnag"),
     log = require("./log.service");
