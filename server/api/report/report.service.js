@@ -5,7 +5,6 @@ const stripeService = require("../../services/stripe.service"),
   log = require("../../services/log.service"),
   moment = require("moment"),
   bugsnag = require("bugsnag"),
-  businessDays = require("../../services/businessDays"),
   config = require("../../config/environment"),
   json2csv = require('json2csv');
 
