@@ -67,15 +67,15 @@ let all = {
     password: "acDb/aFSXiwkr~Zj4IxdFzja",
     export: {
       tickets: {
-        minute: 100,
+        minute: 15,
         count: 1000
       },
       ticket_events: {
-        minute: 110,
+        minute: 30,
         count: 1000
       },
       ticket_metric_events: {
-        minute: 130,
+        minute: 45,
         count: 10000
       }
     }
