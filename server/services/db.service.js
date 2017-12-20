@@ -36,9 +36,9 @@ function getConnection (url) {
   });
 }
 
-exports.close = function(db){
+exports.close = function(db, fn){
   if (db && db.serverConfig && db.serverConfig.isConnected()) {
-    logger.info("close connection server");
+    logger.info("close connection server: "+ fn);
     db.close();
   }
 }
