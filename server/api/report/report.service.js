@@ -7,18 +7,122 @@ const stripeService = require("../../services/stripe.service"),
   bugsnag = require("bugsnag"),
   config = require("../../config/environment"),
   json2csv = require('json2csv'),
+  schedule = require('node-schedule'),
   productionBalanceField = 56135508;
 
-function getSummary(year, month, cb) {
+
+function schedulerMonthlySummary() {
+  if(schedulerMonthlySummary.isRunning){
+    log.info("schedulerMonthlySummary is running")
+    return;
+  }
+  schedulerMonthlySummary.isRunning = true;
+  schedulerMonthlySummary.instace = schedule.scheduleJob("* * * * *", () => {
+    let firstDay = moment().date(1).subtract(1, 'months').toDate();
+    getMonthlySummary(firstDay).then(doc => {
+      if (!doc) {
+        buildSummary(firstDay, (err, result) => {
+          if (err) {
+            log.error(err);
+            bugsnag.notify(err);
+            return;
+          }
+          let report = {
+            name: "organization-monthly-summary",
+            year: firstDay.getFullYear(),
+            month: firstDay.getMonth(),
+            craetedAt: new Date(),
+            report: result
+          };
+          try {
+            let dbc = null
+            dbService.getAtlasConnection().then(db => {
+              dbc = db;
+              let collection = db.collection("report_results");
+
+              collection.insertOne(report, (err, resp) => {
+                if (err) {
+                  log.error(err);
+                  bugsnag.notify(err);
+                  dbService.close(db, "schedulerMonthlySummary");
+                  return;
+                }
+                log.info("Report saved: " + JSON.stringify(resp));
+                dbService.close(db, "schedulerMonthlySummary");
+              })
+            })
+          } catch (error) {
+            log.error(error);
+            bugsnag.notify(error);
+            dbService.close(dbc, "schedulerMonthlySummary");
+          }
+        });
+      }
+    })
+
+  })
+}
+
+
+function getMonthlySummary(firstDay) {
+  return new Promise((resolve, reject) => {
+    let dbc = null;
+    try {
+      let momentFirstDay = moment(firstDay);
+      let filter = {
+        name: "organization-monthly-summary",
+        year: momentFirstDay.year(),
+        month: momentFirstDay.month()
+      };
+      dbService.getAtlasConnection().then(db => {
+        dbc = db;
+        let collection = db.collection("report_results");
+        collection.findOne(filter, (err, doc) => {
+          if (err) {
+            log.error(err);
+            bugsnag.notify(err);
+            dbService.close(db, "getMonthlySummary");
+            return reject(err);
+          }
+          dbService.close(db, "getMonthlySummary");
+          resolve(doc)
+        });
+      }).catch(reason => {
+        log.error(reason);
+        bugsnag.notify(reason);
+        dbService.close(dbc, "getMonthlySummary");
+        reject(reason);
+      })
+    } catch (error) {
+      log.error(error);
+      bugsnag.notify(error);
+      dbService.close(dbc, "getMonthlySummary");
+      reject(error);
+    }
+  });
+}
+
+function getMonthlySummaryCSV(firstDate){
+  return new Promise((resolve, reject) => {
+    getMonthlySummary(firstDate).then(doc => {
+      let result = doc ? json2csv(doc.report) : "";
+      resolve(result);
+    }).catch(reason => {
+      reject(reason);
+    })
+  });
+}
+
+function buildSummary(firstDate, cb) {
   //[touches, outstanding, aged, failed]
   let fields = ["id", "name", "email", "organization", "touches", "outstanding", "aged", "failed", "deposits", "cashflow"];
   Promise.all([
-    getTouches(year, month),
+    getTouches(firstDate),
     reduceAmounts(["ticket_category_adjust_payment_amount_and_or_date", "ticket_category_sign_up_assistance", "ticket_category_setup_unique_payment_plan"], ["open", "pending"]),
-    reduceAmounts(["ticket_category_no_response_unable_to_collect_payment"], ["solved", "closed"], parseInt(year), parseInt(month) - 1),
+    reduceAmounts(["ticket_category_no_response_unable_to_collect_payment"], ["solved", "closed"], firstDate),
     reduceAmounts(["ticket_category_payment_failed_new_card"], ["open", "pending"]),
-    getDeposits(parseInt(year), parseInt(month) - 1, 1),
-    getCashFlow(parseInt(year), parseInt(month) - 1),
+    getDeposits(firstDate),
+    getCashFlow(firstDate),
     getSummaryRecipients()
   ]).then(values => {
     let touches = values[0];
@@ -100,7 +204,7 @@ function getSummary(year, month, cb) {
           }
         }
       }
-      var result = json2csv({ data: rowsWhitRec, fields: fields });
+      var result = { data: rowsWhitRec, fields: fields };
       cb(null, result);
 
     }).catch(reason => {
@@ -109,14 +213,12 @@ function getSummary(year, month, cb) {
   });
 }
 
-function getTouches(year, month) {
+function getTouches(firstDate) {
   return new Promise((resolve, reject) => {
     let dbc = null;
     try {
-      let startDate = new Date(`${year}-${month}-01T00:00:00.0Z`);
-      let endDate = new Date(`${year}-${month}-01T00:00:00.0Z`);
-      endDate.setMonth(startDate.getMonth() + 1);
-      endDate.setDate(0);
+      let startDate = firstDate;
+      let endDate = moment(firstDate).add(1, 'months').toDate();
       dbService.getAtlasConnection().then(db => {
         dbc = db;
         db.collection("zendesk_tickets").aggregate([
@@ -174,7 +276,7 @@ function getTouches(year, month) {
 
 }
 
-function reduceAmounts(fields, status, year, month) {
+function reduceAmounts(fields, status, firstDate) {
   return new Promise((resolve, reject) => {
     let dbc = null;
     try {
@@ -192,10 +294,11 @@ function reduceAmounts(fields, status, year, month) {
             }
           }
         }
-        if (year && month) {
+        if (firstDate) {
+          let endDate = moment(firstDate).add(1, 'months').toDate();
           match.$match["updated_at"] = {
-            $gte: moment({ y: year, M: month, d: 1, h: 0 }).toDate(),
-            $lte: moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months').toDate()
+            $gte: firstDate,
+            $lte: endDate
           }
         }
         db.collection("zendesk_tickets").aggregate([
@@ -237,11 +340,11 @@ function reduceAmounts(fields, status, year, month) {
   })
 }
 
-function getDeposits(year, month) {
+function getDeposits(firstDate) {
   return new Promise((resolve, reject) => {
     try {
-      let startDate = moment({ y: year, M: month, d: 1, h: 0 }).unix();
-      let endDate = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months').unix();
+      let startDate = moment(firstDate).unix();
+      let endDate = moment(firstDate).add(1, 'months').unix();
       reduceDeposits(startDate, endDate).then(result => {
         resolve(result);
       }).catch(reason => {
@@ -313,11 +416,11 @@ function getOrganizations() {
   })
 }
 
-function getCashFlow(year, month) {
+function getCashFlow(firstDate) {
   return new Promise((resolve, reject) => {
     let dbc = null;
     try {
-      let since = moment({ y: year, M: month, d: 1, h: 0 }).add(1, 'months');
+      let since = moment(firstDate).add(1, 'months').toDate();
       dbService.getLocalConnection().then(db => {
         dbc = db;
         db.collection('orders').aggregate([
@@ -328,7 +431,7 @@ function getCashFlow(year, month) {
             $match: {
               "paymentsPlan.status": "pending",
               "paymentsPlan.dateCharge": {
-                $gte: since.toDate()
+                $gte: since
               },
             }
           }
@@ -388,5 +491,6 @@ function handlerError(reason, reject, db) {
 }
 
 module.exports = {
-  getSummary: getSummary
+  getMonthlySummaryCSV: getMonthlySummaryCSV,
+  schedulerMonthlySummary, schedulerMonthlySummary
 };

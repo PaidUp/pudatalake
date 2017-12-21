@@ -21,7 +21,8 @@ config = require("./config/environment"),
 DbService = require("./services/db.service"),
 logger = require("./services/log.service"),
 bugsnag = require("bugsnag"),
-zendeskService = require("./api/schedule/zendesk.service");
+zendeskService = require("./api/schedule/zendesk.service"),
+reportService = require("./api/report/report.service");
 
 
 bugsnag.register(config.bugsnag);
@@ -34,8 +35,8 @@ DbService.connect((err, db) => {
 });
 
 
-const app = express();
-const server = require("http").createServer(app);
+const app = express(),
+ server = require("http").createServer(app);
 require("./config/express")(app);
 require("./routes")(app);
 
@@ -45,6 +46,7 @@ if (config.env != "test") {
     server.listen(config.port, config.ip, function () {
       logger.info(`Express server listening on ${config.port}, in ${app.get("env")} mode`);
       zendeskService.importZendeskTickets();
+      reportService.schedulerMonthlySummary();
     });
   } catch (err) {
     bugsnag.notify(err);
