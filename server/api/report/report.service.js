@@ -17,7 +17,7 @@ function schedulerMonthlySummary() {
     return;
   }
   schedulerMonthlySummary.isRunning = true;
-  schedulerMonthlySummary.instace = schedule.scheduleJob("* * * * *", () => {
+  schedulerMonthlySummary.instace = schedule.scheduleJob("0 0 1 * *", () => {
     let firstDay = moment().date(1).subtract(1, 'months').toDate();
     getMonthlySummary(firstDay).then(doc => {
       if (!doc) {
